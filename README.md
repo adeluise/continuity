@@ -1,4 +1,4 @@
-# agent-continuity
+# continuity
 
 Claude Code forgets between sessions: major decisions made, the reasoning you'd made, what you ruled out, where you left off thinking. `/clear` wipes all of it, and the next session starts cold.
 
