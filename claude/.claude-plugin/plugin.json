@@ -1,0 +1,8 @@
+{
+  "name": "continuity",
+  "description": "Four skills that give Claude Code project memory across sessions: scaffold, orient, preserve, audit.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Anthony DeLuise"
+  }
+}

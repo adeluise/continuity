@@ -34,7 +34,16 @@ Scaffold the three-file context system into the current project. These files sit
 ### `decisions.md`
 
 ```markdown
-<!-- Append-only log of major decisions. Each entry: what was decided, when, why, and what was rejected. Versioned in git. -->
+<!-- Append-only log of major decisions. Each entry: what was decided, when, why, and what was rejected. Versioned in git.
+
+Entry format:
+
+### YYYY-MM-DD — [Decision title]
+**Status:** active
+**Why:** [Rationale — what drove the decision]
+**Rejected:** [What was considered and passed over, and why]
+
+Status is `active` or `superseded`. An entry with no Status line is active. The Status line is the only part of an existing entry that may ever be edited. -->
 
 # Decisions
 ```
@@ -89,7 +98,7 @@ Append this to `CLAUDE.md` if the sentinel `<!-- context-system -->` is not alre
 <!-- context-system -->
 ## Context system
 
-`state.md` is injected automatically at session start by a SessionStart hook — orient from it before acting. Run `/orient` for a full structured orientation with staleness checks.
+`state.md` is injected automatically at session start by a SessionStart hook — orient from it before acting. Run the orient skill for a full structured orientation with staleness checks.
 
 Files:
 - `state.md` — context bridge between sessions (tracked)
