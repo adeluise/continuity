@@ -24,9 +24,20 @@ Changed file list:
 !`git diff --name-only`
 !`git diff --cached --name-only`
 
+Untracked files (won't appear in the diffs above):
+!`git ls-files --others --exclude-standard 2>/dev/null | grep . || echo "(none)"`
+
+Recent commits:
+
+!`git log --oneline -10 2>/dev/null | grep . || echo "(no commits)"`
+
+Last commit that touched `state.md` (the staleness anchor):
+
+!`git log -1 --format="%h %ad %s" --date=short -- state.md 2>/dev/null | grep . || echo "(state.md has never been committed — use the recent commits above instead)"`
+
 Commits made since `state.md` was last committed (work already committed this session — the diff above won't show it):
 
-!`anchor=$(git log -1 --format=%H -- state.md 2>/dev/null); if [ -z "$anchor" ]; then git log --oneline -10 2>/dev/null || echo "(no commits)"; else git log --oneline "$anchor..HEAD" 2>/dev/null | grep . || echo "(none)"; fi`
+!`git log -1 --format=%H..HEAD -- state.md 2>/dev/null | git rev-list --stdin --oneline 2>/dev/null | grep . || echo "(none)"`
 
 ## Rules
 
@@ -36,7 +47,7 @@ Commits made since `state.md` was last committed (work already committed this se
 
 2. **Read before writing.** Before touching anything, read the current `state.md`, `decisions.md`, and `scratch.md` (if it exists) so you know what's already there.
 
-3. **Use the injected context.** The git output above (uncommitted diff plus commits since the last preserve) was injected at skill load time. Combine it with the conversation history — don't rely on either source alone; the diff misses work already committed this session, and the commit list covers it. Do not re-run git unless the injected output is empty.
+3. **Use the injected context.** The git output above (uncommitted diff, untracked files, and commits since the last preserve) was injected at skill load time. Combine it with the conversation history — don't rely on either source alone; the diff misses work already committed this session, and the commit list covers it. The diff also never shows untracked files, so treat every path in the untracked list as new work from this session and account for it in `state.md`. Do not re-run git unless the injected output is empty.
 
 4. **Be concrete, not reflective.** Every section in `state.md` should contain specific file paths, function names, error messages, or next steps. Never write vague summaries like "made good progress" or "things are working well."
 
@@ -110,7 +121,7 @@ Commits made since `state.md` was last committed (work already committed this se
 1. Check that `state.md` and `decisions.md` exist in the project root — if either is missing, tell the user to run the scaffold skill and stop
 2. Read current contents of `state.md`, `decisions.md`, and `scratch.md` (if it exists)
 3. Decide which `scratch.md` notes are still relevant and which section of `state.md` each belongs in
-4. Overwrite `state.md` with filled-in template using the injected git context (diff plus commits), conversation history, and the harvested scratch notes
+4. Overwrite `state.md` with filled-in template using the injected git context (diff, untracked files, plus commits), conversation history, and the harvested scratch notes
 5. Review session for decisions that meet the threshold — append to `decisions.md` with `**Status:** active` if any qualify, skip if none do
 6. If a new decision directly reverses an earlier entry, flip that entry's Status line to `superseded`
 7. Wipe `scratch.md` back to its empty template (create it if missing)

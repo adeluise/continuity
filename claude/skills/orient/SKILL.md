@@ -14,9 +14,13 @@ Recent commits:
 
 !`git log --oneline -5 2>/dev/null || echo "(no commits found)"`
 
+Last commit that touched `state.md` (the staleness anchor):
+
+!`git log -1 --format="%h %ad %s" --date=short -- state.md 2>/dev/null | grep . || echo "(state.md has never been committed — staleness unknown)"`
+
 Commits since `state.md` was last committed (the last preserved session boundary):
 
-!`anchor=$(git log -1 --format=%H -- state.md 2>/dev/null); if [ -z "$anchor" ]; then echo "(state.md has never been committed — staleness unknown)"; else git log --oneline "$anchor..HEAD" 2>/dev/null | grep . || echo "(none — state.md is current with git history)"; fi`
+!`git log -1 --format=%H..HEAD -- state.md 2>/dev/null | git rev-list --stdin --oneline 2>/dev/null | grep . || echo "(none — state.md is current with git history, or the anchor above is unknown)"`
 
 Working tree status:
 
@@ -34,7 +38,7 @@ Working tree status:
 
 4. **Be concrete, not narrative.** Use file paths, function names, error messages, and specific next steps. No "let's pick up where we left off" or "good progress was made." If `state.md` contains vague content, surface it as-is — don't embellish.
 
-5. **Flag staleness.** The injected "commits since `state.md` was last committed" output is the staleness signal. If it lists commits, `state.md` predates them — say so explicitly and list those commits; the context files may be outdated. If it says `state.md` has never been committed, note that staleness can't be determined from git.
+5. **Flag staleness.** The injected "commits since `state.md` was last committed" output is the staleness signal. If it lists commits, `state.md` predates them — say so explicitly and list those commits; the context files may be outdated. If the injected staleness anchor says `state.md` has never been committed, note that staleness can't be determined from git and ignore the commit list below it.
 
 6. **Distrust the staleness check when `state.md` is uncommitted.** The anchor is the last commit that touched `state.md`. If the injected working tree status shows `state.md` as modified or untracked, say so and warn that the staleness result above is unreliable — the file on disk is newer than the anchor, so commits since the anchor may already be reflected in it.
 
