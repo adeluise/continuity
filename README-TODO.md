@@ -1,47 +1,82 @@
-# README rewrite notes
+<!-- Draft README for review — replace README.md with this after editing, then delete this file. -->
 
-Notes for updating `README.md` by hand. Nothing here has been applied to the README — it's untouched.
+# continuity
 
-## Repo and layout
+Claude Code forgets between sessions: the decisions made, the reasoning behind them, what you ruled out, where you left off. `/clear` wipes all of it, and the next session starts cold.
 
-- Repo renamed `agent-continuity` → `continuity`. Any clone URL or title referencing the old name is stale.
-- Skills moved: `scaffold/` → `claude/skills/scaffold/`, same for `orient/` and `preserve/`. `claude/` is the plugin root; repo-root `.claude-plugin/marketplace.json` is the marketplace catalog.
-- New: `example/` (a fictional TypeScript webhook service showing filled-in `state.md`, `decisions.md`, and a real audit run), `LICENSE` (MIT, 2026 Anthony DeLuise).
+Continuity closes that gap with three markdown files in your project and four skills that maintain them. It's the lightweight middle ground — heavier than nothing, far lighter than a memory database. The repo is the memory.
 
-## Install section — replace entirely
+| File | Purpose |
+|------|---------|
+| `state.md` | Context bridge between sessions — fully replaced at the end of each one (tracked) |
+| `decisions.md` | Append-only log of major decisions: what, when, why, what was rejected (tracked) |
+| `scratch.md` | Ephemeral working notes — harvested and wiped at the end of each session (gitignored) |
 
-- The current symlink instructions are obsolete on two counts: the paths changed, and this is a plugin now.
-- New install:
-  ```
-  /plugin marketplace add adeluise/continuity
-  /plugin install continuity@continuity
-  ```
-- Dev / local alternative, for hacking on the skills without installing:
-  ```bash
-  claude --plugin-dir ./claude
-  ```
-- Symlinking still works if someone wants it, but the source paths are now `claude/skills/<name>` — probably not worth documenting alongside the plugin path.
+The fastest way to understand the system is [`example/`](example/): a fictional webhook service with a filled-in `state.md`, eight months of `decisions.md`, and a verbatim audit run showing what drift looks like when it's caught.
 
-## Skill names are namespaced
+## What this is not
 
-- Plugin-installed skills invoke as `/continuity:scaffold`, `/continuity:orient`, `/continuity:preserve`, `/continuity:audit`. The bare `/scaffold` form only works for a personal-directory install.
-- The README currently uses bare `/scaffold` etc. throughout — decide whether to show the namespaced form everywhere or note the namespacing once up front. (The skills themselves no longer refer to each other by slash-command name, for this reason.)
+- **Not `claude --resume`.** That replays a raw transcript — machine-local, token-heavy, noise included. Continuity distills a session into curated, human-readable files versioned alongside the code, so it survives a new machine, a fresh clone, or a teammate.
+- **Not a PRD or design doc.** Those capture intent up front and drift from the day they're merged. `state.md` is operational now-state, rewritten every session; `decisions.md` is rationale accumulated over time.
+- **Not CLAUDE.md.** CLAUDE.md is standing instructions that rarely change. Session state churns; folding it into CLAUDE.md bloats every prompt with things that were true last Tuesday. The split is what's always true vs. what's true right now.
+- **Not memory machinery.** No MCP server, no vector store, no embeddings, no schema. These are rejections, not omissions. The governing principle: state is legible and lives in the repo — plain markdown, versioned in git, correctable in a text editor, zero runtime dependencies.
 
-## Fourth skill: audit
+## Skills
 
-- Needs its own section, same shape as the other three.
-- Checks each active decision in `decisions.md` against the codebase and git history. Reports three buckets — holding, violated, superseded candidate — plus "cannot verify" when the evidence isn't in the repo.
-- Read-only except for one thing: it can flip a decision's `Status` to `superseded`, and only after you confirm.
-- `example/audit-output.md` is a full sample run and is probably the fastest way to show what it does.
+| Skill | When | What it does |
+|-------|------|--------------|
+| `scaffold` | Once per project | Creates the three files, updates `.gitignore` and `CLAUDE.md`, installs the session-start hook |
+| `orient` | Start of a session | Reads the files and recent git, presents where you are, flags staleness |
+| `preserve` | End of a session, before `/clear` | Rewrites `state.md`, appends decisions, harvests and wipes `scratch.md`, offers one commit |
+| `audit` | When the decision log feels stale | Checks each active decision against the code and git history, reports drift |
 
-## Behavior changes to mention
+## Install
 
-- **Status field on decisions.** Entries now carry `**Status:** active` or `superseded`. Missing field = active. The Status line is the only part of an existing entry that may ever be edited — the log is otherwise still append-only.
-- **preserve harvests `scratch.md`.** Still-relevant open questions and gotchas migrate into the matching `state.md` sections before the wipe, and anything discarded is listed explicitly. The README's "scratch.md — wiped clean" line undersells it now.
-- **preserve offers to commit.** After presenting the result it asks once whether to commit `state.md` and `decisions.md`. It's the only question preserve asks.
-- **orient warns on an uncommitted `state.md`.** The staleness check anchors on the last commit touching `state.md`, so a dirty working copy makes it unreliable — orient now says so instead of reporting a confident wrong answer.
+In Claude Code:
 
-## Also
+```
+/plugin marketplace add adeluise/continuity
+/plugin install continuity@continuity
+```
 
-- Point at `example/` somewhere near the top — it explains the system faster than the prose does.
-- Mention the MIT license.
+Plugin-installed skills are namespaced: they invoke as `/continuity:scaffold`, `/continuity:orient`, and so on. This README uses the short names.
+
+To hack on the skills without installing, run Claude Code from a clone with the plugin loaded directly:
+
+```bash
+claude --plugin-dir ./claude
+```
+
+## scaffold
+
+Run once per project. Creates whichever of the three files don't exist (never overwrites), adds `scratch.md` to `.gitignore`, and appends a short context-system block to `CLAUDE.md` — creating a minimal one if the project has none. It also installs a SessionStart hook in `.claude/settings.json` that injects `state.md` into context on startup and after `/clear`, so every session begins oriented without invoking anything. Deterministic — it asks no questions.
+
+Invoke `/continuity:scaffold`, or naturally: "Set up the context system for this project."
+
+## orient
+
+The deliberate version of the session-start hook: reads `state.md`, `decisions.md`, `scratch.md`, and recent git activity, then presents a structured summary with the next step front and center. It checks staleness by listing commits made since `state.md` was last committed — and if `state.md` itself has uncommitted changes, it says the check is unreliable rather than reporting a confident wrong answer. Read-only; it ends by waiting for direction, never by starting work.
+
+Invoke `/continuity:orient`, or naturally: "Let's pick this back up."
+
+## preserve
+
+Run at the end of a session, before `/clear`. Rewrites `state.md` in full — where you ended, what's working, what's broken, landmines, and the first thing to do next session. Appends decisions to `decisions.md` only when they clear a threshold (a door closed, something explicitly rejected, rationale that won't be obvious later); each new entry carries `**Status:** active`. The log is append-only with one exception: if a decision made this session directly reverses an earlier entry, that entry's Status flips to `superseded` — that line, nothing else. An entry with no Status line is active.
+
+Before wiping `scratch.md`, preserve harvests it: still-relevant open questions, gotchas, and unfinished threads migrate into the matching `state.md` sections, and every note it discards is listed explicitly so nothing disappears silently. It presents the result for review, then asks exactly one question: commit `state.md` and `decisions.md`? Yes or no — committing stays your call.
+
+Invoke `/continuity:preserve`, or naturally: "Let's wrap up."
+
+## audit
+
+Checks every active decision in `decisions.md` against the codebase and git history — superseded entries are skipped as history. Each finding lands in one of four buckets: **holding**, **violated** (the code contradicts a decision that's still supposed to stand — the drift is the bug), **superseded candidate** (the project deliberately moved past the decision, but nothing recorded it), or **cannot verify** (the evidence isn't in this repo — absence of evidence is never treated as violation). Every claim cites a file path, symbol, or commit hash.
+
+It's read-only with one exception: for superseded candidates it proposes the flip and, only after you confirm, edits that entry's Status line to `superseded` — nothing else in the file. See [`example/audit-output.md`](example/audit-output.md) for a full run.
+
+Invoke `/continuity:audit`, or naturally: "Do our past decisions still hold?"
+
+## Caveats
+
+`state.md` is tracked so its history is versioned, but the system is currently optimized for a single user: preserve does a full replacement, so expect merge conflicts if multiple contributors preserve on the same branch. Will find a solution when there's a need.
+
+MIT licensed.
