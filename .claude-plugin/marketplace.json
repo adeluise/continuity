@@ -1,0 +1,14 @@
+{
+  "name": "continuity",
+  "owner": {
+    "name": "Anthony DeLuise"
+  },
+  "description": "Skills that give Claude Code project memory across sessions.",
+  "plugins": [
+    {
+      "name": "continuity",
+      "source": "./claude",
+      "description": "Four skills that give Claude Code project memory across sessions: scaffold, orient, preserve, audit."
+    }
+  ]
+}
